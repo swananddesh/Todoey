@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  TodoListViewController.swift
 //  Todoey
 //
 //  Created by Swanand Deshpande on 28/06/21.
@@ -11,28 +11,15 @@ class TodoListViewController: UITableViewController {
     
     var itemArray = [Item]()
     
-    let defaults = UserDefaults.standard // Create UserDefaults
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
         
-        let newItem = Item()
-        newItem.title = "Buy Milk"
-        itemArray.append(newItem)
+        print(dataFilePath!)
         
-        let newItem2 = Item()
-        newItem2.title = "Buy Maggie"
-        itemArray.append(newItem2)
-        
-        let newItem3 = Item()
-        newItem3.title = "Buy Fruits"
-        itemArray.append(newItem3)
-        
-        // Fetch stored UserDefaults data if any.
-        if let items = defaults.array(forKey: "ToDoListArray") as? [Item] {
-            itemArray = items
-        }
+        // Fetch stored NSCoder data if any.
+        loadItems()
         
     }
     
@@ -64,8 +51,7 @@ class TodoListViewController: UITableViewController {
         // Toggle the checkmark on selection.
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         
-        // Refresh the tableView.
-        tableView.reloadData()
+        saveItems()
         
         tableView.deselectRow(at: indexPath, animated: true) // Row highlight.
     }
@@ -87,11 +73,8 @@ class TodoListViewController: UITableViewController {
             
             self.itemArray.append(newItem)
             
-            // Add newly created To-Do item to UserDefaults.
-            self.defaults.set(self.itemArray, forKey: "ToDoListArray")
-            
-            self.tableView.reloadData() // Refresh tableview once new item is added.
-            
+            // Add newly created To-Do item using NSCoder.
+            self.saveItems()
         }
         
         // Add TextField to alert so that user can enter his/her ToDo item
@@ -105,6 +88,42 @@ class TodoListViewController: UITableViewController {
         
         // Show alert
         present(alert, animated: true, completion: nil)
+    }
+    
+    
+    func saveItems() {
+        
+        let encoder = PropertyListEncoder()
+        
+        do {
+            let data = try encoder.encode(itemArray)
+            try data.write(to: dataFilePath!)
+        } catch {
+            print("Error encoding item array, \(error)")
+        }
+        
+        
+        tableView.reloadData() // Refresh tableview.
+        
+    }
+    
+    
+    func loadItems() {
+        
+        if let data = try? Data(contentsOf: dataFilePath!) {
+            
+            let decoder = PropertyListDecoder()
+            
+            do {
+                
+                itemArray = try decoder.decode([Item].self, from: data)
+                
+            } catch {
+                print("Error loading items. \(error)")
+            }
+            
+        }
+        
     }
     
 }
